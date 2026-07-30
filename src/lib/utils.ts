@@ -63,3 +63,37 @@ export function getStatusColor(status: string): string {
       return 'bg-gray-50 text-gray-700 dark:bg-gray-950 dark:text-gray-400'
   }
 }
+
+export function calculateMonthsEnrolled(admissionDate: string | Date, endDate?: string | Date | null): number {
+  const start = new Date(admissionDate)
+  const end = endDate ? new Date(endDate) : new Date()
+
+  if (isNaN(start.getTime())) return 1
+
+  const yearsDiff = end.getFullYear() - start.getFullYear()
+  const monthsDiff = end.getMonth() - start.getMonth()
+  
+  const totalMonths = yearsDiff * 12 + monthsDiff + 1
+  return Math.max(1, totalMonths)
+}
+
+export function calculateDynamicFee(
+  monthlyRate: number,
+  admissionDate: string,
+  totalPaid: number,
+  status: string,
+  updatedAt?: string
+) {
+  const isFinished = status === 'completed' || status === 'dropped'
+  const months = calculateMonthsEnrolled(admissionDate, isFinished ? updatedAt : null)
+  const totalFee = Math.max(monthlyRate, months * monthlyRate)
+  const remaining = Math.max(0, totalFee - totalPaid)
+  
+  return {
+    monthsEnrolled: months,
+    totalFee,
+    paid: totalPaid,
+    remaining,
+    status: remaining <= 0 ? 'paid' : totalPaid > 0 ? 'partial' : 'unpaid'
+  }
+}
