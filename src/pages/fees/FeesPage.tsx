@@ -6,17 +6,21 @@ import { StatCard } from '@/components/shared/StatCard'
 import { DataTable, type Column, type Filter } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
-import { CreditCard, TrendingUp, AlertTriangle, Phone } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { CreditCard, TrendingUp, AlertTriangle, Phone, MessageCircle } from 'lucide-react'
+import { formatCurrency, calculateDynamicFee, generateWhatsAppUrl } from '@/lib/utils'
+import { useSettings } from '@/contexts/SettingsContext'
 import type { Fee, Student } from '@/types'
 
 interface FeeWithStudent extends Omit<Fee, 'student'> {
   status: string
-  student?: Pick<Student, 'id' | 'full_name' | 'admission_no' | 'student_mobile' | 'parent_mobile'>
+  monthsEnrolled: number
+  monthlyRate: number
+  student?: Pick<Student, 'id' | 'full_name' | 'admission_no' | 'student_mobile' | 'parent_mobile' | 'admission_date' | 'status' | 'updated_at'>
 }
 
 export default function FeesPage() {
   const navigate = useNavigate()
+  const { instituteName } = useSettings()
   const [fees, setFees] = useState<FeeWithStudent[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -24,25 +28,49 @@ export default function FeesPage() {
     fetchFees()
   }, [])
 
-  function computeFeeStatus(remaining: number, total: number): string {
-    if (remaining <= 0) return 'paid'
-    if (remaining < total) return 'partial'
-    return 'unpaid'
-  }
-
   async function fetchFees() {
     const { data } = await supabase
       .from('fees')
-      .select('*, student:students(id, full_name, admission_no, student_mobile, parent_mobile)')
+      .select('*, student:students(id, full_name, admission_no, student_mobile, parent_mobile, admission_date, status, updated_at)')
       .order('created_at', { ascending: false })
 
-    const processed = ((data as FeeWithStudent[]) || []).map((item) => ({
-      ...item,
-      status: computeFeeStatus(item.remaining, item.total_fee),
-    }))
+    const processed = ((data as FeeWithStudent[]) || []).map((item) => {
+      const student = item.student
+      if (student?.admission_date) {
+        const dynamic = calculateDynamicFee(
+          item.total_fee,
+          student.admission_date,
+          item.paid,
+          student.status,
+          student.updated_at
+        )
+        return {
+          ...item,
+          monthlyRate: item.total_fee,
+          total_fee: dynamic.totalFee,
+          remaining: dynamic.remaining,
+          status: dynamic.status,
+          monthsEnrolled: dynamic.monthsEnrolled,
+        }
+      }
+
+      return {
+        ...item,
+        monthlyRate: item.total_fee,
+        monthsEnrolled: 1,
+        status: item.remaining <= 0 ? 'paid' : item.paid > 0 ? 'partial' : 'unpaid',
+      }
+    })
 
     setFees(processed)
     setLoading(false)
+  }
+
+  function sendWhatsAppReminder(row: FeeWithStudent) {
+    const mobile = row.student?.student_mobile || row.student?.parent_mobile
+    if (!mobile) return
+    const msg = `Dear ${row.student?.full_name},\n\nThis is a friendly fee reminder from ${instituteName}.\n\nTotal Stay: ${row.monthsEnrolled} Month(s)\nTotal Fee: ${formatCurrency(row.total_fee)}\nPaid: ${formatCurrency(row.paid)}\nRemaining Balance: ${formatCurrency(row.remaining)}\n\nPlease clear your pending dues at your earliest. Thank you!`
+    window.open(generateWhatsAppUrl(mobile, msg), '_blank')
   }
 
   const totalCollected = fees.reduce((sum, f) => sum + f.paid, 0)
@@ -80,10 +108,24 @@ export default function FeesPage() {
       ),
     },
     {
+      key: 'monthsEnrolled',
+      header: 'Duration',
+      cell: (row) => (
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-secondary text-secondary-foreground">
+          {row.monthsEnrolled} {row.monthsEnrolled === 1 ? 'Month' : 'Months'}
+        </span>
+      ),
+    },
+    {
       key: 'total_fee',
-      header: 'Total Fee',
+      header: 'Total Due',
       sortable: true,
-      cell: (row) => <span className="font-medium">{formatCurrency(row.total_fee)}</span>,
+      cell: (row) => (
+        <div>
+          <p className="font-medium text-sm">{formatCurrency(row.total_fee)}</p>
+          <p className="text-[11px] text-muted-foreground">({formatCurrency(row.monthlyRate)}/mo)</p>
+        </div>
+      ),
     },
     {
       key: 'paid',
@@ -108,21 +150,35 @@ export default function FeesPage() {
     {
       key: 'actions',
       header: '',
-      className: 'w-36 text-right',
+      className: 'w-44 text-right',
       cell: (row) =>
         row.remaining > 0 ? (
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950"
-            onClick={(e) => {
-              e.stopPropagation()
-              navigate(`/fees/pay/${row.student_id}`)
-            }}
-          >
-            <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-            Record Pay
-          </Button>
+          <div className="flex items-center justify-end gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950 text-xs px-2.5 h-8"
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/fees/pay/${row.student_id}`)
+              }}
+            >
+              <CreditCard className="h-3.5 w-3.5 mr-1" />
+              Pay
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950 px-2 h-8"
+              title="Send WhatsApp Fee Reminder"
+              onClick={(e) => {
+                e.stopPropagation()
+                sendWhatsAppReminder(row)
+              }}
+            >
+              <MessageCircle className="h-3.5 w-3.5" />
+            </Button>
+          </div>
         ) : (
           <span className="text-xs text-emerald-600 font-medium px-2 py-1 rounded bg-emerald-50 dark:bg-emerald-950">
             Cleared
