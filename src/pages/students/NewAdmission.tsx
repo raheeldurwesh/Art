@@ -104,18 +104,18 @@ export default function NewAdmissionPage() {
       const feeData = Array.isArray(student.fee) ? student.fee[0] : student.fee
 
       reset({
-        full_name: student.full_name,
-        father_mother_name: student.father_mother_name,
-        student_mobile: student.student_mobile,
-        parent_mobile: student.parent_mobile,
+        full_name: student.full_name || '',
+        father_mother_name: student.father_mother_name || '',
+        student_mobile: student.student_mobile || '',
+        parent_mobile: student.parent_mobile || '',
         email: student.email || '',
-        dob: student.dob,
-        gender: student.gender,
-        address: student.address,
-        course_id: student.course_id,
-        batch_id: student.batch_id,
-        admission_date: student.admission_date,
-        status: student.status,
+        dob: student.dob || '',
+        gender: student.gender || 'male',
+        address: student.address || '',
+        course_id: student.course_id || '',
+        batch_id: student.batch_id || '',
+        admission_date: student.admission_date || new Date().toISOString().split('T')[0],
+        status: student.status || 'active',
         notes: student.notes || '',
         total_fee: feeData?.total_fee || 0,
         initial_payment: 0,
@@ -145,6 +145,15 @@ export default function NewAdmissionPage() {
     setPhoto(null)
     setPhotoPreview(null)
     setExistingPhotoUrl(null)
+  }
+
+  function onInvalid(formErrors: Record<string, any>) {
+    console.error('Validation errors:', formErrors)
+    const firstKey = Object.keys(formErrors)[0]
+    if (firstKey) {
+      const message = formErrors[firstKey]?.message
+      toast.error(typeof message === 'string' ? message : `Please check ${firstKey} field`)
+    }
   }
 
   async function onSubmit(data: StudentFormData) {
@@ -270,7 +279,7 @@ export default function NewAdmissionPage() {
         description={isEditing ? 'Update student information and course settings' : 'Register a new student admission'}
       />
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)}>
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main form */}
           <div className="lg:col-span-2 space-y-6">
