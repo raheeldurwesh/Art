@@ -5,14 +5,12 @@ export const studentSchema = z.object({
   father_mother_name: z.string().min(2, 'Parent name must be at least 2 characters'),
   student_mobile: z
     .string()
-    .min(10, 'Mobile number must be 10 digits')
-    .max(10, 'Mobile number must be 10 digits')
-    .regex(/^[0-9]+$/, 'Must contain only digits'),
+    .min(10, 'Mobile number must be at least 10 digits')
+    .regex(/^[0-9+\s-]+$/, 'Mobile number must contain valid digits'),
   parent_mobile: z
     .string()
-    .min(10, 'Mobile number must be 10 digits')
-    .max(10, 'Mobile number must be 10 digits')
-    .regex(/^[0-9]+$/, 'Must contain only digits'),
+    .min(10, 'Mobile number must be at least 10 digits')
+    .regex(/^[0-9+\s-]+$/, 'Mobile number must contain valid digits'),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
   dob: z.string().min(1, 'Date of birth is required'),
   gender: z.enum(['male', 'female', 'other'], { required_error: 'Gender is required' }),
