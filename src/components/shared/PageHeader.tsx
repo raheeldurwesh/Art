@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button, type ButtonProps } from '@/components/ui/button'
 import { type LucideIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
 
@@ -10,7 +10,7 @@ interface PageHeaderProps {
     label: string
     icon?: LucideIcon
     onClick: () => void
-    variant?: 'default' | 'outline' | 'secondary' | 'ghost'
+    variant?: ButtonProps['variant']
   }[]
   children?: ReactNode
 }
@@ -37,7 +37,7 @@ export function PageHeader({ title, description, actions, children }: PageHeader
             onClick={action.onClick}
             size="sm"
           >
-            {action.icon && <action.icon className="h-4 w-4" />}
+            {action.icon && <action.icon className="h-4 w-4 mr-1.5" />}
             {action.label}
           </Button>
         ))}
