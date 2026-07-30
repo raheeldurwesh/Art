@@ -10,9 +10,9 @@ import { CreditCard, TrendingUp, AlertTriangle, Phone } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import type { Fee, Student } from '@/types'
 
-interface FeeWithStudent extends Fee {
+interface FeeWithStudent extends Omit<Fee, 'student'> {
   status: string
-  student: Pick<Student, 'id' | 'full_name' | 'admission_no' | 'student_mobile' | 'parent_mobile'>
+  student?: Pick<Student, 'id' | 'full_name' | 'admission_no' | 'student_mobile' | 'parent_mobile'>
 }
 
 export default function FeesPage() {
