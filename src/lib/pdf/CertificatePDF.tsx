@@ -22,7 +22,7 @@ const styles = StyleSheet.create({
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    justify: 'space-between',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
   },
   // Top Header Section
