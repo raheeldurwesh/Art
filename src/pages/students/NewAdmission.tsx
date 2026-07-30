@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { studentSchema, type StudentFormData } from '@/schemas'
@@ -24,19 +24,24 @@ import { motion } from 'framer-motion'
 import type { Course, Batch } from '@/types'
 
 export default function NewAdmissionPage() {
+  const { id } = useParams<{ id?: string }>()
+  const isEditing = Boolean(id)
   const navigate = useNavigate()
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [filteredBatches, setFilteredBatches] = useState<Batch[]>([])
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [existingFeePaid, setExistingFeePaid] = useState(0)
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<StudentFormData>({
     resolver: zodResolver(studentSchema),
@@ -48,33 +53,84 @@ export default function NewAdmissionPage() {
   })
 
   const selectedCourseId = watch('course_id')
+  const selectedBatchId = watch('batch_id')
+  const selectedGender = watch('gender')
+  const selectedStatus = watch('status')
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchInitialData()
+  }, [id])
 
   useEffect(() => {
     if (selectedCourseId) {
-      const filtered = batches.filter((b) => b.course_id === selectedCourseId && b.status === 'active')
+      const filtered = batches.filter((b) => b.course_id === selectedCourseId)
       setFilteredBatches(filtered)
 
-      // Auto-fill fee from course
-      const course = courses.find((c) => c.id === selectedCourseId)
-      if (course) {
-        setValue('total_fee', course.fee)
+      // Auto-fill fee from course ONLY on new admission creation
+      if (!isEditing) {
+        const course = courses.find((c) => c.id === selectedCourseId)
+        if (course) {
+          setValue('total_fee', course.fee)
+        }
       }
     } else {
       setFilteredBatches([])
     }
-  }, [selectedCourseId, batches, courses, setValue])
+  }, [selectedCourseId, batches, courses, setValue, isEditing])
 
-  async function fetchData() {
+  async function fetchInitialData() {
     const [{ data: coursesData }, { data: batchesData }] = await Promise.all([
-      supabase.from('courses').select('*').eq('status', 'active').order('name'),
-      supabase.from('batches').select('*').eq('status', 'active').order('name'),
+      supabase.from('courses').select('*').order('name'),
+      supabase.from('batches').select('*').order('name'),
     ])
-    setCourses((coursesData as Course[]) || [])
-    setBatches((batchesData as Batch[]) || [])
+    const loadedCourses = (coursesData as Course[]) || []
+    const loadedBatches = (batchesData as Batch[]) || []
+    setCourses(loadedCourses)
+    setBatches(loadedBatches)
+
+    if (id) {
+      const { data: student, error } = await supabase
+        .from('students')
+        .select('*, fee:fees(*)')
+        .eq('id', id)
+        .single()
+
+      if (error || !student) {
+        toast.error('Student not found')
+        navigate('/students')
+        return
+      }
+
+      const feeData = Array.isArray(student.fee) ? student.fee[0] : student.fee
+
+      reset({
+        full_name: student.full_name,
+        father_mother_name: student.father_mother_name,
+        student_mobile: student.student_mobile,
+        parent_mobile: student.parent_mobile,
+        email: student.email || '',
+        dob: student.dob,
+        gender: student.gender,
+        address: student.address,
+        course_id: student.course_id,
+        batch_id: student.batch_id,
+        admission_date: student.admission_date,
+        status: student.status,
+        notes: student.notes || '',
+        total_fee: feeData?.total_fee || 0,
+        initial_payment: 0,
+        payment_method: 'cash',
+      })
+
+      if (feeData) {
+        setExistingFeePaid(feeData.paid || 0)
+      }
+
+      if (student.photo_url) {
+        setPhotoPreview(student.photo_url)
+        setExistingPhotoUrl(student.photo_url)
+      }
+    }
   }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -88,14 +144,14 @@ export default function NewAdmissionPage() {
   function removePhoto() {
     setPhoto(null)
     setPhotoPreview(null)
+    setExistingPhotoUrl(null)
   }
 
   async function onSubmit(data: StudentFormData) {
     setSubmitting(true)
     try {
-      let photo_url: string | null = null
+      let photo_url: string | null = existingPhotoUrl
 
-      // Upload photo if provided
       if (photo) {
         const fileExt = photo.name.split('.').pop()
         const fileName = `${Date.now()}.${fileExt}`
@@ -115,58 +171,93 @@ export default function NewAdmissionPage() {
         photo_url = urlData.publicUrl
       }
 
-      // Create student
-      const { data: student, error: studentError } = await supabase
-        .from('students')
-        .insert({
-          full_name: data.full_name,
-          father_mother_name: data.father_mother_name,
-          student_mobile: data.student_mobile,
-          parent_mobile: data.parent_mobile,
-          email: data.email || null,
-          dob: data.dob,
-          gender: data.gender,
-          address: data.address,
-          course_id: data.course_id,
-          batch_id: data.batch_id,
-          admission_date: data.admission_date,
-          status: data.status,
-          notes: data.notes || null,
-          photo_url,
-        })
-        .select()
-        .single()
+      if (isEditing && id) {
+        const { error: updateError } = await supabase
+          .from('students')
+          .update({
+            full_name: data.full_name,
+            father_mother_name: data.father_mother_name,
+            student_mobile: data.student_mobile,
+            parent_mobile: data.parent_mobile,
+            email: data.email || null,
+            dob: data.dob,
+            gender: data.gender,
+            address: data.address,
+            course_id: data.course_id,
+            batch_id: data.batch_id,
+            admission_date: data.admission_date,
+            status: data.status,
+            notes: data.notes || null,
+            photo_url,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', id)
 
-      if (studentError) throw studentError
+        if (updateError) throw updateError
 
-      // Create fee record
-      const initialPayment = data.initial_payment || 0
-      const { error: feeError } = await supabase.from('fees').insert({
-        student_id: student.id,
-        total_fee: data.total_fee,
-        paid: initialPayment,
-        remaining: data.total_fee - initialPayment,
-      })
+        const newRemaining = Math.max(0, data.total_fee - existingFeePaid)
+        await supabase
+          .from('fees')
+          .update({
+            total_fee: data.total_fee,
+            remaining: newRemaining,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('student_id', id)
 
-      if (feeError) throw feeError
+        toast.success('Student details updated successfully!')
+        navigate(`/students/${id}`)
+      } else {
+        const { data: student, error: studentError } = await supabase
+          .from('students')
+          .insert({
+            full_name: data.full_name,
+            father_mother_name: data.father_mother_name,
+            student_mobile: data.student_mobile,
+            parent_mobile: data.parent_mobile,
+            email: data.email || null,
+            dob: data.dob,
+            gender: data.gender,
+            address: data.address,
+            course_id: data.course_id,
+            batch_id: data.batch_id,
+            admission_date: data.admission_date,
+            status: data.status,
+            notes: data.notes || null,
+            photo_url,
+          })
+          .select()
+          .single()
 
-      // Create initial payment if any
-      if (initialPayment > 0) {
-        await supabase.from('fee_payments').insert({
-          fee_id: student.id,
+        if (studentError) throw studentError
+
+        const initialPayment = data.initial_payment || 0
+        const { error: feeError } = await supabase.from('fees').insert({
           student_id: student.id,
-          amount: initialPayment,
-          payment_date: data.admission_date,
-          payment_method: data.payment_method || 'cash',
-          notes: 'Initial payment at admission',
+          total_fee: data.total_fee,
+          paid: initialPayment,
+          remaining: data.total_fee - initialPayment,
         })
-      }
 
-      toast.success(`Student admitted successfully! Admission No: ${student.admission_no}`)
-      navigate(`/students/${student.id}`)
+        if (feeError) throw feeError
+
+        if (initialPayment > 0) {
+          await supabase.from('fee_payments').insert({
+            fee_id: student.id,
+            student_id: student.id,
+            amount: initialPayment,
+            payment_date: data.admission_date,
+            payment_method: data.payment_method || 'cash',
+            notes: 'Initial payment at admission',
+          })
+        }
+
+        toast.success(`Student admitted successfully! Admission No: ${student.admission_no}`)
+        navigate(`/students/${student.id}`)
+      }
     } catch (error) {
-      console.error('Admission error:', error)
-      toast.error('Failed to create admission. Please try again.')
+      console.error('Save student error:', error)
+      toast.error('Failed to save student details. Please try again.')
     } finally {
       setSubmitting(false)
     }
@@ -175,8 +266,8 @@ export default function NewAdmissionPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="New Admission"
-        description="Register a new student admission"
+        title={isEditing ? 'Edit Student' : 'New Admission'}
+        description={isEditing ? 'Update student information and course settings' : 'Register a new student admission'}
       />
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -233,19 +324,36 @@ export default function NewAdmissionPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="gender">Gender *</Label>
-                    <Select onValueChange={(val) => setValue('gender', val as 'male' | 'female' | 'other')}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {errors.gender && <p className="text-xs text-destructive">{errors.gender.message}</p>}
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">Gender *</Label>
+                      <Select value={selectedGender} onValueChange={(val) => setValue('gender', val as 'male' | 'female' | 'other')}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.gender && <p className="text-xs text-destructive">{errors.gender.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="status">Student Status *</Label>
+                      <Select value={selectedStatus} onValueChange={(val) => setValue('status', val as any)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="completed">Completed</SelectItem>
+                          <SelectItem value="dropped">Dropped</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {errors.status && <p className="text-xs text-destructive">{errors.status.message}</p>}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -271,7 +379,7 @@ export default function NewAdmissionPage() {
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <Label>Course *</Label>
-                      <Select onValueChange={(val) => setValue('course_id', val)}>
+                      <Select value={selectedCourseId} onValueChange={(val) => setValue('course_id', val)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select course" />
                         </SelectTrigger>
@@ -288,6 +396,7 @@ export default function NewAdmissionPage() {
                     <div className="space-y-2">
                       <Label>Batch *</Label>
                       <Select
+                        value={selectedBatchId}
                         onValueChange={(val) => setValue('batch_id', val)}
                         disabled={!selectedCourseId}
                       >
@@ -332,29 +441,33 @@ export default function NewAdmissionPage() {
                       <Input id="total_fee" type="number" placeholder="0" {...register('total_fee')} />
                       {errors.total_fee && <p className="text-xs text-destructive">{errors.total_fee.message}</p>}
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="initial_payment">Initial Payment (₹)</Label>
-                      <Input id="initial_payment" type="number" placeholder="0" {...register('initial_payment')} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Payment Method</Label>
-                      <Select
-                        defaultValue="cash"
-                        onValueChange={(val) => setValue('payment_method', val as StudentFormData['payment_method'])}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="upi">UPI</SelectItem>
-                          <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                          <SelectItem value="card">Card</SelectItem>
-                          <SelectItem value="cheque">Cheque</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {!isEditing && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="initial_payment">Initial Payment (₹)</Label>
+                          <Input id="initial_payment" type="number" placeholder="0" {...register('initial_payment')} />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Payment Method</Label>
+                          <Select
+                            defaultValue="cash"
+                            onValueChange={(val) => setValue('payment_method', val as StudentFormData['payment_method'])}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="cash">Cash</SelectItem>
+                              <SelectItem value="upi">UPI</SelectItem>
+                              <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                              <SelectItem value="card">Card</SelectItem>
+                              <SelectItem value="cheque">Cheque</SelectItem>
+                              <SelectItem value="other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -430,10 +543,10 @@ export default function NewAdmissionPage() {
                 {submitting ? (
                   <div className="flex items-center gap-2">
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                    Creating Admission...
+                    {isEditing ? 'Updating Student...' : 'Creating Admission...'}
                   </div>
                 ) : (
-                  'Save Admission'
+                  isEditing ? 'Update Student' : 'Save Admission'
                 )}
               </Button>
               <Button
