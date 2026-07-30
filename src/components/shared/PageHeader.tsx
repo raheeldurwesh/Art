@@ -1,7 +1,9 @@
 import { type ReactNode } from 'react'
-import { Button, type ButtonProps } from '@/components/ui/button'
+import { Button } from '@/components/ui/button'
 import { type LucideIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
+
+export type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
 
 interface PageHeaderProps {
   title: string
@@ -10,7 +12,7 @@ interface PageHeaderProps {
     label: string
     icon?: LucideIcon
     onClick: () => void
-    variant?: ButtonProps['variant']
+    variant?: ButtonVariant
   }[]
   children?: ReactNode
 }
