@@ -66,6 +66,7 @@ export const settingsSchema = z.object({
   phone: z.string().min(10, 'Phone number is required'),
   email: z.string().email('Invalid email'),
   director_name: z.string().min(2, 'Director name is required'),
+  upi_id: z.string().optional().or(z.literal('')),
 })
 
 export type SettingsFormData = z.infer<typeof settingsSchema>
