@@ -12,7 +12,7 @@ export const studentSchema = z.object({
     .min(10, 'Mobile number must be at least 10 digits')
     .regex(/^[0-9+\s-]+$/, 'Mobile number must contain valid digits'),
   email: z.string().email('Invalid email address').optional().or(z.literal('')),
-  dob: z.string().min(1, 'Date of birth is required'),
+  dob: z.string().optional().or(z.literal('')),
   gender: z.enum(['male', 'female', 'other'], { required_error: 'Gender is required' }),
   address: z.string().min(5, 'Address must be at least 5 characters'),
   course_id: z.string().min(1, 'Please select a course'),
