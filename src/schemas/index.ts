@@ -29,7 +29,8 @@ export type StudentFormData = z.infer<typeof studentSchema>
 
 export const courseSchema = z.object({
   name: z.string().min(2, 'Course name must be at least 2 characters'),
-  duration_months: z.coerce.number().min(1, 'Duration must be at least 1 month'),
+  duration_months: z.coerce.number().min(0, 'Duration must be 0 or greater'),
+  duration_unit: z.enum(['days', 'weeks', 'months', 'lifetime']).default('months'),
   fee: z.coerce.number().min(0, 'Fee must be a positive number'),
   description: z.string().optional().or(z.literal('')),
   status: z.enum(['active', 'inactive']).default('active'),
