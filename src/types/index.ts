@@ -6,6 +6,7 @@ export type AttendanceStatus = 'present' | 'absent'
 export type PaymentMethod = 'cash' | 'upi' | 'bank_transfer' | 'card' | 'cheque' | 'other'
 export type CourseStatus = 'active' | 'inactive'
 export type BatchStatus = 'active' | 'inactive' | 'completed'
+export type DurationUnit = 'days' | 'weeks' | 'months' | 'lifetime'
 
 // ── Database Models ────────────────────────────────────────
 
@@ -27,6 +28,7 @@ export interface Course {
   id: string
   name: string
   duration_months: number
+  duration_unit?: DurationUnit
   fee: number
   description: string | null
   status: CourseStatus
