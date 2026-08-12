@@ -129,16 +129,16 @@ export default function ReportsPage() {
       {/* Date Range */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-4">
-            <div className="space-y-2">
+          <div className="grid gap-4 sm:flex sm:flex-wrap sm:items-end">
+            <div className="space-y-2 flex-1 min-w-[140px]">
               <Label>From</Label>
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 flex-1 min-w-[140px]">
               <Label>To</Label>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
-            <Button variant="outline" size="sm" onClick={exportPDF} disabled={exporting}>
+            <Button variant="outline" size="sm" onClick={exportPDF} disabled={exporting} className="w-full sm:w-auto">
               <Download className="h-4 w-4 mr-1.5" />
               {exporting ? 'Exporting...' : 'Export PDF'}
             </Button>
@@ -147,7 +147,7 @@ export default function ReportsPage() {
       </Card>
 
       <Tabs defaultValue="admissions" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 max-w-full flex-wrap sm:flex-nowrap">
           <TabsTrigger value="admissions">Admissions</TabsTrigger>
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
