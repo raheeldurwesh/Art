@@ -18,6 +18,7 @@ export interface InstituteSettings {
   email: string
   director_name: string
   director_signature_url: string | null
+  upi_id?: string | null
   created_at: string
   updated_at: string
 }
