@@ -61,14 +61,14 @@ function Breadcrumbs() {
   if (crumbs.length === 1) return null
 
   return (
-    <nav className="flex items-center text-sm text-muted-foreground">
+    <nav className="hidden sm:flex items-center text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
       {crumbs.map((crumb, i) => (
         <span key={crumb.path} className="flex items-center">
-          {i > 0 && <ChevronRight className="h-3.5 w-3.5 mx-1.5" />}
+          {i > 0 && <ChevronRight className="h-3.5 w-3.5 mx-1.5 shrink-0" />}
           {i === crumbs.length - 1 ? (
-            <span className="font-medium text-foreground">{crumb.label}</span>
+            <span className="font-medium text-foreground truncate">{crumb.label}</span>
           ) : (
-            <Link to={crumb.path} className="hover:text-foreground transition-colors">
+            <Link to={crumb.path} className="hover:text-foreground transition-colors truncate">
               {crumb.label}
             </Link>
           )}
@@ -177,7 +177,7 @@ export function Header({ onMenuClick, onSearchOpen }: HeaderProps) {
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-80 p-0" align="end">
+          <DropdownMenuContent className="w-[calc(100vw-2rem)] sm:w-80 p-0" align="end">
             <DropdownMenuLabel className="p-3 border-b flex items-center justify-between">
               <span className="font-semibold text-sm">Monthly Fee Dues</span>
               <span className="text-xs bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded-full font-medium">
