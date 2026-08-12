@@ -25,6 +25,14 @@ export function formatDate(date: string | Date | null | undefined): string {
   }).format(d)
 }
 
+export function formatDuration(value: number, unit?: string): string {
+  const u = (unit || 'months').toLowerCase()
+  if (u === 'lifetime') return 'Lifetime Access'
+  if (u === 'days') return `${value} ${value === 1 ? 'day' : 'days'}`
+  if (u === 'weeks') return `${value} ${value === 1 ? 'week' : 'weeks'}`
+  return `${value} ${value === 1 ? 'month' : 'months'}`
+}
+
 export function formatDateTime(date: string | Date): string {
   return new Intl.DateTimeFormat('en-IN', {
     day: '2-digit',
