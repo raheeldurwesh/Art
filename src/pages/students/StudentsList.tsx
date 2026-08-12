@@ -114,9 +114,19 @@ export default function StudentsListPage() {
     },
     {
       key: 'admission_date',
-      header: 'Admission Date',
+      header: 'Admission Date & Time',
       sortable: true,
-      cell: (row) => <span className="text-sm">{formatDate(row.admission_date)}</span>,
+      cell: (row) => {
+        const timeStr = row.created_at
+          ? new Date(row.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+          : ''
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">{formatDate(row.admission_date)}</span>
+            {timeStr && <span className="text-[11px] text-muted-foreground font-mono">{timeStr}</span>}
+          </div>
+        )
+      },
     },
     {
       key: 'status',
