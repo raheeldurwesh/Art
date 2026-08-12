@@ -188,6 +188,7 @@ export default function StudentProfilePage() {
       const studentName = student?.full_name || 'Student'
       const courseName = (student?.course as unknown as { name: string })?.name || 'Course'
       const duration = (student?.course as unknown as { duration_months: number })?.duration_months || 3
+      const durationUnit = (student?.course as unknown as { duration_unit?: string })?.duration_unit || 'months'
 
       const doc = (
         <CertificatePDFDocument
@@ -195,6 +196,7 @@ export default function StudentProfilePage() {
           studentName={studentName}
           courseName={courseName}
           durationMonths={duration}
+          durationUnit={durationUnit}
           issueDate={formatDate(cert.issue_date)}
           instituteName={instituteName}
           directorName={settings?.director_name || 'Director'}
@@ -265,6 +267,10 @@ export default function StudentProfilePage() {
   const displayTotalFee = dynamicFee ? dynamicFee.totalFee : (fee?.total_fee || 0)
   const displayRemaining = dynamicFee ? dynamicFee.remaining : (fee?.remaining || 0)
   const monthsStayed = dynamicFee ? dynamicFee.monthsEnrolled : 1
+
+  const admissionTime = student.created_at
+    ? new Date(student.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })
+    : ''
 
   return (
     <div className="space-y-6">
@@ -346,7 +352,7 @@ export default function StudentProfilePage() {
                     </span>
                   )}
                   <span className="flex items-center gap-1.5">
-                    <Calendar className="h-3.5 w-3.5" /> Admitted {formatDate(student.admission_date)} ({monthsStayed} mo)
+                    <Calendar className="h-3.5 w-3.5" /> Admitted {formatDate(student.admission_date)}{admissionTime ? `, ${admissionTime}` : ''} ({monthsStayed} mo)
                   </span>
                 </div>
               </div>
@@ -387,12 +393,12 @@ export default function StudentProfilePage() {
       </motion.div>
 
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 max-w-full flex-wrap sm:flex-nowrap">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
-          <TabsTrigger value="certificates">Certificates</TabsTrigger>
+          <TabsTrigger value="certificates">Certificates ({certificates.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
         </TabsList>
 
@@ -421,7 +427,7 @@ export default function StudentProfilePage() {
               <CardContent className="space-y-3">
                 <InfoRow label="Course" value={courseName} />
                 <InfoRow label="Batch" value={batchName} />
-                <InfoRow label="Admission Date" value={formatDate(student.admission_date)} />
+                <InfoRow label="Admission Date & Time" value={`${formatDate(student.admission_date)}${admissionTime ? ` at ${admissionTime}` : ''}`} />
                 <InfoRow label="Duration Enrolled" value={`${monthsStayed} Month(s)`} />
                 <InfoRow label="Status" value={<StatusBadge status={student.status} />} />
                 <Separator />
