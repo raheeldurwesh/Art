@@ -6,6 +6,8 @@ import { studentSchema, type StudentFormData } from '@/schemas'
 import { supabase } from '@/lib/supabase'
 import { useSettings } from '@/contexts/SettingsContext'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { ImageCropperModal } from '@/components/shared/ImageCropperModal'
+import { CameraCaptureModal } from '@/components/shared/CameraCaptureModal'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,7 +21,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Upload, X, QrCode, Copy, Check, ExternalLink, Sparkles } from 'lucide-react'
+import { Upload, X, QrCode, Copy, Check, ExternalLink, Sparkles, Crop, Camera } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -36,6 +38,9 @@ export default function NewAdmissionPage() {
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [cameraModalOpen, setCameraModalOpen] = useState(false)
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [existingFeePaid, setExistingFeePaid] = useState(0)
   const [showQrCode, setShowQrCode] = useState(false)
@@ -161,8 +166,30 @@ export default function NewAdmissionPage() {
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
-      setPhoto(file)
-      setPhotoPreview(URL.createObjectURL(file))
+      const reader = new FileReader()
+      reader.onload = () => {
+        setRawImageSrc(reader.result as string)
+        setCropModalOpen(true)
+      }
+      reader.readAsDataURL(file)
+      e.target.value = ''
+    }
+  }
+
+  function handleCropComplete(croppedFile: File) {
+    setPhoto(croppedFile)
+    setPhotoPreview(URL.createObjectURL(croppedFile))
+  }
+
+  function handleCameraCapture(dataUrl: string) {
+    setRawImageSrc(dataUrl)
+    setCropModalOpen(true)
+  }
+
+  function reCropPhoto() {
+    if (photoPreview) {
+      setRawImageSrc(photoPreview)
+      setCropModalOpen(true)
     }
   }
 
@@ -170,6 +197,7 @@ export default function NewAdmissionPage() {
     setPhoto(null)
     setPhotoPreview(null)
     setExistingPhotoUrl(null)
+    setRawImageSrc(null)
   }
 
   function onInvalid(formErrors: Record<string, any>) {
@@ -626,34 +654,60 @@ export default function NewAdmissionPage() {
                 </CardHeader>
                 <CardContent>
                   {photoPreview ? (
-                    <div className="relative">
+                    <div className="relative group">
                       <img
                         src={photoPreview}
                         alt="Preview"
-                        className="w-full aspect-square object-cover rounded-xl border"
+                        className="w-full aspect-square object-cover rounded-xl border shadow-sm"
                       />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="icon"
-                        className="absolute top-2 right-2 h-7 w-7"
-                        onClick={removePhoto}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      <div className="absolute top-2 right-2 flex gap-1.5">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="icon"
+                          className="h-7 w-7 bg-background/80 backdrop-blur-sm shadow-xs hover:bg-background"
+                          title="Re-crop photo"
+                          onClick={reCropPhoto}
+                        >
+                          <Crop className="h-3.5 w-3.5 text-primary" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-7 w-7 shadow-xs"
+                          title="Remove photo"
+                          onClick={removePhoto}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   ) : (
-                    <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30">
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                      <span className="text-sm font-medium text-muted-foreground">Upload Photo</span>
-                      <span className="text-xs text-muted-foreground mt-1">JPG, PNG up to 5MB</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={handlePhotoChange}
-                      />
-                    </label>
+                    <div className="flex flex-col gap-3">
+                      <label className="flex flex-col items-center justify-center w-full aspect-square rounded-xl border-2 border-dashed border-border hover:border-primary/50 transition-colors cursor-pointer bg-muted/30 p-4 text-center">
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <span className="text-sm font-medium text-muted-foreground">Upload Photo</span>
+                        <span className="text-xs text-muted-foreground mt-1">JPG, PNG up to 5MB</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handlePhotoChange}
+                        />
+                      </label>
+
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full gap-2 text-xs"
+                        onClick={() => setCameraModalOpen(true)}
+                      >
+                        <Camera className="h-4 w-4 text-primary" />
+                        Take Live Photo with Camera
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -684,6 +738,24 @@ export default function NewAdmissionPage() {
           </div>
         </div>
       </form>
+
+      {/* Live Camera Capture Modal */}
+      <CameraCaptureModal
+        isOpen={cameraModalOpen}
+        onClose={() => setCameraModalOpen(false)}
+        onCapture={handleCameraCapture}
+      />
+
+      {/* Interactive Image Cropper Modal */}
+      <ImageCropperModal
+        isOpen={cropModalOpen}
+        onClose={() => setCropModalOpen(false)}
+        imageSrc={rawImageSrc}
+        onCropComplete={handleCropComplete}
+        aspectRatio={1}
+        title="Crop Student Photo"
+        fileName="student-photo.jpg"
+      />
     </div>
   )
 }
