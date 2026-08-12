@@ -157,11 +157,11 @@ export default function RecordPaymentPage() {
               <Label htmlFor="notes">Notes</Label>
               <Textarea id="notes" placeholder="Payment notes..." {...register('notes')} />
             </div>
-            <div className="flex gap-3">
-              <Button type="submit" disabled={isSubmitting}>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
                 {isSubmitting ? 'Recording...' : 'Record Payment'}
               </Button>
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+              <Button type="button" variant="outline" onClick={() => navigate(-1)} className="w-full sm:w-auto">
                 Cancel
               </Button>
             </div>
