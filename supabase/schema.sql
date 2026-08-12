@@ -66,12 +66,15 @@ CREATE TABLE IF NOT EXISTS public.courses (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name TEXT NOT NULL,
   duration_months INTEGER NOT NULL DEFAULT 3,
+  duration_unit TEXT NOT NULL DEFAULT 'months' CHECK (duration_unit IN ('days', 'weeks', 'months', 'lifetime')),
   fee NUMERIC(10,2) NOT NULL DEFAULT 0.00,
   description TEXT,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE public.courses ADD COLUMN IF NOT EXISTS duration_unit TEXT DEFAULT 'months';
 
 -- 4. Batches Table
 CREATE TABLE IF NOT EXISTS public.batches (
