@@ -5,6 +5,7 @@ import type { InstituteSettings } from '@/types'
 interface SettingsContextType {
   settings: InstituteSettings | null
   instituteName: string
+  upiId: string
   loading: boolean
   refreshSettings: () => Promise<void>
 }
@@ -44,12 +45,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const instituteName = settings?.name?.trim() || DEFAULT_INSTITUTE_NAME
+  const upiId = settings?.upi_id?.trim() || ''
 
   return (
     <SettingsContext.Provider
       value={{
         settings,
         instituteName,
+        upiId,
         loading,
         refreshSettings: fetchSettings,
       }}
