@@ -205,7 +205,7 @@ export default function SettingsPage() {
             <div className="grid gap-6 sm:grid-cols-2 mb-6">
               <div>
                 <Label className="mb-2 block">Institute Logo</Label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="h-20 w-20 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted/30 shrink-0">
                     {logoPreview ? (
                       <img src={logoPreview} alt="Logo" className="h-full w-full object-contain" />
@@ -235,7 +235,7 @@ export default function SettingsPage() {
 
               <div>
                 <Label className="mb-2 block">Director / Owner Signature</Label>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                   <div className="h-20 w-36 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden bg-muted/30 p-1 shrink-0">
                     {signaturePreview ? (
                       <img src={signaturePreview} alt="Signature" className="h-full w-full object-contain" />
