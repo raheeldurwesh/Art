@@ -27,7 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Plus, Edit, Trash2, BookOpen, Clock, IndianRupee } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatDuration } from '@/lib/utils'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import type { Course } from '@/types'
@@ -47,10 +47,16 @@ export default function CoursesPage() {
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CourseFormData>({
     resolver: zodResolver(courseSchema),
+    defaultValues: {
+      duration_unit: 'months',
+    },
   })
+
+  const selectedUnit = watch('duration_unit')
 
   useEffect(() => {
     fetchCourses()
@@ -64,7 +70,7 @@ export default function CoursesPage() {
 
   function openAddForm() {
     setEditingCourse(null)
-    reset({ name: '', duration_months: 3, fee: 0, description: '', status: 'active' })
+    reset({ name: '', duration_months: 3, duration_unit: 'months', fee: 0, description: '', status: 'active' })
     setFormOpen(true)
   }
 
@@ -73,6 +79,7 @@ export default function CoursesPage() {
     reset({
       name: course.name,
       duration_months: course.duration_months,
+      duration_unit: course.duration_unit || 'months',
       fee: course.fee,
       description: course.description || '',
       status: course.status,
@@ -181,7 +188,7 @@ export default function CoursesPage() {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5">
                       <Clock className="h-3.5 w-3.5" />
-                      {course.duration_months} months
+                      {formatDuration(course.duration_months, course.duration_unit)}
                     </span>
                     <span className="flex items-center gap-1.5">
                       <IndianRupee className="h-3.5 w-3.5" />
@@ -207,16 +214,44 @@ export default function CoursesPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name">Course Name *</Label>
-              <Input id="name" placeholder="e.g., Web Development" {...register('name')} />
+              <Input id="name" placeholder="e.g., Web Development or 15-Day Workshop" {...register('name')} />
               {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="duration_months">Duration (Months) *</Label>
-                <Input id="duration_months" type="number" min={1} {...register('duration_months')} />
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2 col-span-1">
+                <Label htmlFor="duration_months">Duration *</Label>
+                <Input
+                  id="duration_months"
+                  type="number"
+                  min={0}
+                  placeholder={selectedUnit === 'lifetime' ? 'N/A' : 'e.g. 15 or 3'}
+                  disabled={selectedUnit === 'lifetime'}
+                  {...register('duration_months')}
+                />
                 {errors.duration_months && <p className="text-xs text-destructive">{errors.duration_months.message}</p>}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 col-span-1">
+                <Label>Unit *</Label>
+                <Select
+                  defaultValue={editingCourse?.duration_unit || 'months'}
+                  onValueChange={(val) => {
+                    const u = val as 'days' | 'weeks' | 'months' | 'lifetime'
+                    setValue('duration_unit', u)
+                    if (u === 'lifetime') {
+                      setValue('duration_months', 0)
+                    }
+                  }}
+                >
+                  <SelectTrigger><SelectValue placeholder="Select unit" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="days">Days (e.g. 15, 20, 25 Days)</SelectItem>
+                    <SelectItem value="weeks">Weeks (e.g. 2, 4 Weeks)</SelectItem>
+                    <SelectItem value="months">Months (e.g. 1, 3, 6 Months)</SelectItem>
+                    <SelectItem value="lifetime">♾️ Lifetime Access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2 col-span-1">
                 <Label htmlFor="fee">Fee (₹) *</Label>
                 <Input id="fee" type="number" min={0} {...register('fee')} />
                 {errors.fee && <p className="text-xs text-destructive">{errors.fee.message}</p>}
