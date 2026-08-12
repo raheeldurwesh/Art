@@ -48,6 +48,7 @@ export default function SettingsPage() {
         phone: data.phone,
         email: data.email,
         director_name: data.director_name,
+        upi_id: data.upi_id || '',
       })
       if (data.logo_url) setLogoPreview(data.logo_url)
       if (data.director_signature_url) setSignaturePreview(data.director_signature_url)
@@ -287,10 +288,17 @@ export default function SettingsPage() {
                 <Textarea id="address" {...register('address')} />
                 {errors.address && <p className="text-xs text-destructive">{errors.address.message}</p>}
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="director_name">Director Name *</Label>
-                <Input id="director_name" {...register('director_name')} />
-                {errors.director_name && <p className="text-xs text-destructive">{errors.director_name.message}</p>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="director_name">Director Name *</Label>
+                  <Input id="director_name" {...register('director_name')} />
+                  {errors.director_name && <p className="text-xs text-destructive">{errors.director_name.message}</p>}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="upi_id">Institute UPI ID (for QR Code Payment)</Label>
+                  <Input id="upi_id" placeholder="e.g. institute@upi or 9876543210@ybl" {...register('upi_id')} />
+                  {errors.upi_id && <p className="text-xs text-destructive">{errors.upi_id.message}</p>}
+                </div>
               </div>
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'Saving...' : 'Save Changes'}
