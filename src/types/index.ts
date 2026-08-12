@@ -58,7 +58,7 @@ export interface Student {
   student_mobile: string
   parent_mobile: string
   email: string | null
-  dob: string
+  dob?: string | null
   gender: Gender
   address: string
   course_id: string
