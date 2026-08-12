@@ -31,7 +31,7 @@ export function PageHeader({ title, description, actions, children }: PageHeader
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
         )}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         {actions?.map((action) => (
           <Button
             key={action.label}
