@@ -352,11 +352,11 @@ export default function StudentProfilePage() {
               </div>
 
               {/* WhatsApp buttons */}
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950"
+                  className="text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950 w-full sm:w-auto"
                   onClick={() => openWhatsApp('admission')}
                 >
                   <MessageCircle className="h-4 w-4 mr-1.5" />
@@ -365,7 +365,7 @@ export default function StudentProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950"
+                  className="text-amber-600 border-amber-200 hover:bg-amber-50 dark:border-amber-800 dark:hover:bg-amber-950 w-full sm:w-auto"
                   onClick={() => openWhatsApp('fee_reminder')}
                 >
                   <CreditCard className="h-4 w-4 mr-1.5" />
@@ -374,6 +374,7 @@ export default function StudentProfilePage() {
                 <Button
                   variant="outline"
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => openWhatsApp('custom')}
                 >
                   <MessageCircle className="h-4 w-4 mr-1.5" />
@@ -387,7 +388,7 @@ export default function StudentProfilePage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
+        <TabsList className="w-full justify-start overflow-x-auto h-auto p-1 max-w-full flex-wrap sm:flex-nowrap">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="fees">Fees</TabsTrigger>
           <TabsTrigger value="attendance">Attendance</TabsTrigger>
