@@ -189,7 +189,7 @@ export default function NewAdmissionPage() {
             student_mobile: data.student_mobile,
             parent_mobile: data.parent_mobile,
             email: data.email || null,
-            dob: data.dob,
+            dob: data.dob || '2000-01-01',
             gender: data.gender,
             address: data.address,
             course_id: data.course_id,
@@ -225,7 +225,7 @@ export default function NewAdmissionPage() {
             student_mobile: data.student_mobile,
             parent_mobile: data.parent_mobile,
             email: data.email || null,
-            dob: data.dob,
+            dob: data.dob || '2000-01-01',
             gender: data.gender,
             address: data.address,
             course_id: data.course_id,
@@ -320,17 +320,10 @@ export default function NewAdmissionPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email (Optional)</Label>
-                      <Input id="email" type="email" placeholder="email@example.com" {...register('email')} />
-                      {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="dob">Date of Birth *</Label>
-                      <Input id="dob" type="date" {...register('dob')} />
-                      {errors.dob && <p className="text-xs text-destructive">{errors.dob.message}</p>}
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email (Optional)</Label>
+                    <Input id="email" type="email" placeholder="email@example.com" {...register('email')} />
+                    {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
