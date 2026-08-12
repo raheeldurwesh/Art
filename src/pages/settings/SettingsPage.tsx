@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useSettings } from '@/contexts/SettingsContext'
 import { PageHeader } from '@/components/shared/PageHeader'
+import { ImageCropperModal } from '@/components/shared/ImageCropperModal'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { Upload, Building2, User, Palette, Shield, Trash2 } from 'lucide-react'
+import { Upload, Building2, User, Palette, Shield, Trash2, Crop } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 
@@ -25,6 +26,9 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null)
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null)
+  const [cropType, setCropType] = useState<'logo' | 'signature'>('logo')
 
   const {
     register,
@@ -69,45 +73,40 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleLogoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
-
-    try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `logo.${fileExt}`
-      const { error: uploadError } = await supabase.storage
-        .from('institute-assets')
-        .upload(fileName, file, { upsert: true })
-
-      if (uploadError) throw uploadError
-
-      const { data: urlData } = supabase.storage
-        .from('institute-assets')
-        .getPublicUrl(fileName)
-
-      await supabase
-        .from('institute_settings')
-        .upsert({ id: 'default', logo_url: urlData.publicUrl, updated_at: new Date().toISOString() })
-
-      await refreshSettings()
-      setLogoPreview(urlData.publicUrl)
-      toast.success('Logo updated!')
-    } catch {
-      toast.error('Failed to upload logo')
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string)
+        setCropType('logo')
+        setCropModalOpen(true)
+      }
+      reader.readAsDataURL(file)
+      e.target.value = ''
     }
   }
 
-  async function handleSignatureUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleSignatureSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string)
+        setCropType('signature')
+        setCropModalOpen(true)
+      }
+      reader.readAsDataURL(file)
+      e.target.value = ''
+    }
+  }
 
+  async function handleCropSave(croppedFile: File) {
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `signature.${fileExt}`
+      const fileName = cropType === 'logo' ? `logo_${Date.now()}.jpg` : `signature_${Date.now()}.jpg`
       const { error: uploadError } = await supabase.storage
         .from('institute-assets')
-        .upload(fileName, file, { upsert: true })
+        .upload(fileName, croppedFile, { upsert: true })
 
       if (uploadError) throw uploadError
 
@@ -115,15 +114,25 @@ export default function SettingsPage() {
         .from('institute-assets')
         .getPublicUrl(fileName)
 
+      const updateData = cropType === 'logo'
+        ? { logo_url: urlData.publicUrl }
+        : { director_signature_url: urlData.publicUrl }
+
       await supabase
         .from('institute_settings')
-        .upsert({ id: 'default', director_signature_url: urlData.publicUrl, updated_at: new Date().toISOString() })
+        .upsert({ id: 'default', ...updateData, updated_at: new Date().toISOString() })
 
       await refreshSettings()
-      setSignaturePreview(urlData.publicUrl)
-      toast.success('Director signature updated!')
+
+      if (cropType === 'logo') {
+        setLogoPreview(urlData.publicUrl)
+        toast.success('Logo cropped and updated successfully!')
+      } else {
+        setSignaturePreview(urlData.publicUrl)
+        toast.success('Director signature cropped and updated successfully!')
+      }
     } catch {
-      toast.error('Failed to upload signature')
+      toast.error(`Failed to upload ${cropType}`)
     }
   }
 
@@ -222,7 +231,7 @@ export default function SettingsPage() {
                           Upload Logo
                         </span>
                       </Button>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleLogoSelect} />
                     </label>
                     {logoPreview && (
                       <Button variant="ghost" size="sm" onClick={removeLogo} className="text-destructive hover:bg-destructive/10 justify-start h-8 px-2">
@@ -252,7 +261,7 @@ export default function SettingsPage() {
                           Upload Signature
                         </span>
                       </Button>
-                      <input type="file" accept="image/*" className="hidden" onChange={handleSignatureUpload} />
+                      <input type="file" accept="image/*" className="hidden" onChange={handleSignatureSelect} />
                     </label>
                     {signaturePreview && (
                       <Button variant="ghost" size="sm" onClick={removeSignature} className="text-destructive hover:bg-destructive/10 justify-start h-8 px-2">
@@ -379,6 +388,17 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Image Cropper Modal for Logo / Signature */}
+      <ImageCropperModal
+        isOpen={cropModalOpen}
+        onClose={() => setCropModalOpen(false)}
+        imageSrc={cropImageSrc}
+        onCropComplete={handleCropSave}
+        aspectRatio={cropType === 'logo' ? 1 : 3}
+        title={cropType === 'logo' ? 'Crop Institute Logo' : 'Crop Director Signature'}
+        fileName={cropType === 'logo' ? 'institute-logo.jpg' : 'director-signature.jpg'}
+      />
     </div>
   )
 }
