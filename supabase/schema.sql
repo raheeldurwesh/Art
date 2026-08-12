@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS public.institute_settings (
   email TEXT NOT NULL DEFAULT 'contact@institute.com',
   director_name TEXT NOT NULL DEFAULT 'Director Name',
   director_signature_url TEXT,
+  upi_id TEXT DEFAULT 'institute@upi',
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -180,6 +181,8 @@ DROP TRIGGER IF EXISTS trigger_generate_cert_no ON public.certificates;
 CREATE TRIGGER trigger_generate_cert_no
 BEFORE INSERT ON public.certificates
 FOR EACH ROW EXECUTE FUNCTION generate_cert_no();
+-- Ensure upi_id column exists if table was created previously
+ALTER TABLE public.institute_settings ADD COLUMN IF NOT EXISTS upi_id TEXT DEFAULT 'institute@upi';
 
 -- ── ROW LEVEL SECURITY (RLS) POLICIES ────────────────────────────────────
 
@@ -194,17 +197,35 @@ ALTER TABLE public.fee_payments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.certificates ENABLE ROW LEVEL SECURITY;
 
--- Create policies for full access (Allow public/authenticated for seamless SaaS operation or restrict to authenticated users)
+-- Create policies for full access (Idempotent policy creation)
+DROP POLICY IF EXISTS "Allow public read institute_settings" ON public.institute_settings;
 CREATE POLICY "Allow public read institute_settings" ON public.institute_settings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Allow all institute_settings" ON public.institute_settings;
 CREATE POLICY "Allow all institute_settings" ON public.institute_settings FOR ALL USING (true);
 
+DROP POLICY IF EXISTS "Allow all courses" ON public.courses;
 CREATE POLICY "Allow all courses" ON public.courses FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all batches" ON public.batches;
 CREATE POLICY "Allow all batches" ON public.batches FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all students" ON public.students;
 CREATE POLICY "Allow all students" ON public.students FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all student_documents" ON public.student_documents;
 CREATE POLICY "Allow all student_documents" ON public.student_documents FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all fees" ON public.fees;
 CREATE POLICY "Allow all fees" ON public.fees FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all fee_payments" ON public.fee_payments;
 CREATE POLICY "Allow all fee_payments" ON public.fee_payments FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all attendance" ON public.attendance;
 CREATE POLICY "Allow all attendance" ON public.attendance FOR ALL USING (true);
+
+DROP POLICY IF EXISTS "Allow all certificates" ON public.certificates;
 CREATE POLICY "Allow all certificates" ON public.certificates FOR ALL USING (true);
 
 -- ── STORAGE BUCKETS ──────────────────────────────────────────────────────
@@ -213,10 +234,20 @@ INSERT INTO storage.buckets (id, name, public) VALUES ('student-photos', 'studen
 INSERT INTO storage.buckets (id, name, public) VALUES ('institute-assets', 'institute-assets', true) ON CONFLICT (id) DO NOTHING;
 INSERT INTO storage.buckets (id, name, public) VALUES ('documents', 'documents', true) ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "Public Read Student Photos" ON storage.objects;
 CREATE POLICY "Public Read Student Photos" ON storage.objects FOR SELECT USING (bucket_id = 'student-photos');
+
+DROP POLICY IF EXISTS "Public Insert Student Photos" ON storage.objects;
 CREATE POLICY "Public Insert Student Photos" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'student-photos');
+
+DROP POLICY IF EXISTS "Public Update Student Photos" ON storage.objects;
 CREATE POLICY "Public Update Student Photos" ON storage.objects FOR UPDATE WITH CHECK (bucket_id = 'student-photos');
 
+DROP POLICY IF EXISTS "Public Read Institute Assets" ON storage.objects;
 CREATE POLICY "Public Read Institute Assets" ON storage.objects FOR SELECT USING (bucket_id = 'institute-assets');
+
+DROP POLICY IF EXISTS "Public Insert Institute Assets" ON storage.objects;
 CREATE POLICY "Public Insert Institute Assets" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'institute-assets');
+
+DROP POLICY IF EXISTS "Public Update Institute Assets" ON storage.objects;
 CREATE POLICY "Public Update Institute Assets" ON storage.objects FOR UPDATE WITH CHECK (bucket_id = 'institute-assets');
