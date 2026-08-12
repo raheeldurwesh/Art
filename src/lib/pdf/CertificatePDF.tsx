@@ -178,6 +178,7 @@ interface CertificatePDFProps {
   studentName: string
   courseName: string
   durationMonths: number
+  durationUnit?: string
   issueDate: string
   instituteName: string
   directorName: string
@@ -189,11 +190,20 @@ export function CertificatePDFDocument({
   studentName,
   courseName,
   durationMonths,
+  durationUnit,
   issueDate,
   instituteName,
   directorName,
   directorSignatureUrl,
 }: CertificatePDFProps) {
+  const formattedDuration = durationUnit === 'lifetime'
+    ? ''
+    : durationUnit === 'days'
+    ? `${durationMonths} Day(s)`
+    : durationUnit === 'weeks'
+    ? `${durationMonths} Week(s)`
+    : `${durationMonths} Month(s)`
+
   return (
     <Document>
       <Page size="A4" orientation="landscape" style={styles.page}>
@@ -226,7 +236,7 @@ export function CertificatePDFDocument({
               <Text style={styles.matterParagraph}>
                 has successfully completed the comprehensive training program and coursework in{' '}
                 <Text style={styles.courseHighlight}>{courseName}</Text> conducted at this Institute for a total duration of{' '}
-                <Text style={styles.durationText}>{durationMonths} Month(s)</Text>.
+                <Text style={styles.durationText}>{formattedDuration}</Text>.
               </Text>
               <Text style={styles.matterParagraph}>
                 During the period of study, the candidate demonstrated exemplary academic performance, practical competence, and adherence to institutional standards. In recognition of the successful fulfillment of all curriculum requirements and evaluations, this Certificate of Completion is hereby conferred.
