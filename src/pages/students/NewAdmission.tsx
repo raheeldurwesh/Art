@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, Link } from 'react-router-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { studentSchema, type StudentFormData } from '@/schemas'
 import { supabase } from '@/lib/supabase'
+import { useSettings } from '@/contexts/SettingsContext'
 import { PageHeader } from '@/components/shared/PageHeader'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,15 +19,17 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import { Upload, X } from 'lucide-react'
+import { Upload, X, QrCode, Copy, Check, ExternalLink, Sparkles } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import type { Course, Batch } from '@/types'
 
 export default function NewAdmissionPage() {
   const { id } = useParams<{ id?: string }>()
   const isEditing = Boolean(id)
   const navigate = useNavigate()
+  const { upiId, instituteName } = useSettings()
   const [courses, setCourses] = useState<Course[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
   const [filteredBatches, setFilteredBatches] = useState<Batch[]>([])
@@ -35,6 +38,8 @@ export default function NewAdmissionPage() {
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [existingFeePaid, setExistingFeePaid] = useState(0)
+  const [showQrCode, setShowQrCode] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const {
     register,
@@ -56,6 +61,26 @@ export default function NewAdmissionPage() {
   const selectedBatchId = watch('batch_id')
   const selectedGender = watch('gender')
   const selectedStatus = watch('status')
+  const currentTotalFee = watch('total_fee') || 0
+  const currentInitialPayment = watch('initial_payment') || 0
+  const currentPaymentMethod = watch('payment_method') || 'cash'
+  const currentStudentName = watch('full_name') || 'Student'
+
+  const payableAmount = currentInitialPayment > 0 ? currentInitialPayment : currentTotalFee
+
+  function copyUpiId() {
+    if (!upiId) return
+    navigator.clipboard.writeText(upiId)
+    setCopied(true)
+    toast.success('UPI ID copied to clipboard!')
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const encodedUpiId = encodeURIComponent(upiId)
+  const encodedName = encodeURIComponent(instituteName)
+  const encodedNote = encodeURIComponent(`Admission fee for ${currentStudentName}`)
+  const upiUri = `upi://pay?pa=${encodedUpiId}&pn=${encodedName}&am=${payableAmount}&cu=INR&tn=${encodedNote}`
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(upiUri)}`
 
   useEffect(() => {
     fetchInitialData()
@@ -450,17 +475,37 @@ export default function NewAdmissionPage() {
                           <Input id="initial_payment" type="number" placeholder="0" {...register('initial_payment')} />
                         </div>
                         <div className="space-y-2">
-                          <Label>Payment Method</Label>
+                          <div className="flex items-center justify-between gap-1">
+                            <Label className="whitespace-nowrap">Payment Method</Label>
+                            {currentPaymentMethod === 'upi' && (
+                              <button
+                                type="button"
+                                onClick={() => setShowQrCode(!showQrCode)}
+                                className="text-xs text-primary hover:underline flex items-center gap-1 font-medium px-1 py-0.5 rounded transition-colors"
+                              >
+                                <QrCode className="h-3.5 w-3.5" />
+                                <span>{showQrCode ? 'Hide QR' : 'Show QR'}</span>
+                              </button>
+                            )}
+                          </div>
                           <Select
                             defaultValue="cash"
-                            onValueChange={(val) => setValue('payment_method', val as StudentFormData['payment_method'])}
+                            onValueChange={(val) => {
+                              const method = val as StudentFormData['payment_method']
+                              setValue('payment_method', method)
+                              if (method === 'upi') {
+                                setShowQrCode(true)
+                              } else {
+                                setShowQrCode(false)
+                              }
+                            }}
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="cash">Cash</SelectItem>
-                              <SelectItem value="upi">UPI</SelectItem>
+                              <SelectItem value="upi">UPI (Instant QR Code)</SelectItem>
                               <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
                               <SelectItem value="card">Card</SelectItem>
                               <SelectItem value="cheque">Cheque</SelectItem>
@@ -471,6 +516,82 @@ export default function NewAdmissionPage() {
                       </>
                     )}
                   </div>
+
+                  {/* Dynamic UPI QR Code Card */}
+                  <AnimatePresence>
+                    {!isEditing && showQrCode && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="overflow-hidden pt-4"
+                      >
+                        <div className="rounded-xl border border-primary/20 bg-primary/5 p-5 space-y-4 text-center">
+                          <div className="flex items-center justify-center gap-2 text-primary font-semibold text-sm">
+                            <Sparkles className="h-4 w-4" />
+                            <span>Instant UPI Payment QR Code</span>
+                          </div>
+
+                          {!upiId ? (
+                            <div className="py-4 space-y-2">
+                              <p className="text-xs text-muted-foreground">No UPI ID configured in Admin Settings.</p>
+                              <Button variant="outline" size="sm" asChild>
+                                <Link to="/settings">Set Institute UPI ID in Settings →</Link>
+                              </Button>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="flex justify-center">
+                                <div className="p-4 bg-white rounded-2xl shadow-md border border-gray-200 inline-flex flex-col items-center">
+                                  <img
+                                    src={qrImageUrl}
+                                    alt="UPI Payment QR Code"
+                                    className="h-48 w-48 object-contain rounded-md"
+                                  />
+                                  <p className="text-[11px] font-medium text-gray-600 mt-2.5 tracking-tight">
+                                    Scan with GPay, PhonePe, Paytm or any UPI App
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-wrap items-center justify-center gap-2 text-xs pt-1">
+                                <span className="text-muted-foreground font-medium">UPI ID:</span>
+                                <span className="font-semibold font-mono bg-background px-2.5 py-1 rounded-md border shadow-xs">
+                                  {upiId}
+                                </span>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 px-2 text-xs"
+                                  onClick={copyUpiId}
+                                >
+                                  {copied ? <Check className="h-3.5 w-3.5 text-emerald-600 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                                  {copied ? 'Copied' : 'Copy'}
+                                </Button>
+                              </div>
+
+                              {payableAmount > 0 && (
+                                <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 px-3.5 py-1 rounded-full text-xs font-bold border border-emerald-200 dark:border-emerald-800">
+                                  <span>Payable Amount: {formatCurrency(Number(payableAmount))}</span>
+                                </div>
+                              )}
+
+                              <div className="pt-1">
+                                <Button variant="outline" size="sm" asChild className="text-xs h-8">
+                                  <a href={upiUri} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                                    Open UPI App Directly (Mobile)
+                                  </a>
+                                </Button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </CardContent>
               </Card>
             </motion.div>
