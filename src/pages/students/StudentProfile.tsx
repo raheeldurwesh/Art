@@ -405,7 +405,7 @@ export default function StudentProfilePage() {
               <CardContent className="space-y-3">
                 <InfoRow label="Full Name" value={student.full_name} />
                 <InfoRow label="Father/Mother" value={student.father_mother_name} />
-                <InfoRow label="Date of Birth" value={formatDate(student.dob)} />
+                {student.dob && student.dob !== '2000-01-01' && <InfoRow label="Date of Birth" value={formatDate(student.dob)} />}
                 <InfoRow label="Gender" value={student.gender.charAt(0).toUpperCase() + student.gender.slice(1)} />
                 <InfoRow label="Student Mobile" value={student.student_mobile} />
                 <InfoRow label="Parent Mobile" value={student.parent_mobile} />
