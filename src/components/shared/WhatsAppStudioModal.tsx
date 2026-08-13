@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { MessageCircle, Users, ExternalLink, Send, Sparkles, X, Copy, Check } from 'lucide-react'
+import { MessageCircle, Users, ExternalLink, Send, Sparkles, X, Copy, Check, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Batch, Student } from '@/types'
 import { supabase } from '@/lib/supabase'
@@ -110,18 +110,21 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
     }
   }, [templateId, selectedBatchId, activeBatchName])
 
-  // Post to WhatsApp Group
+  // Method A: Pre-filled WhatsApp Share (Opens WhatsApp with text pre-filled so you select any group)
+  const handleShareWhatsAppWithText = () => {
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`
+    window.open(url, '_blank')
+  }
+
+  // Method B: Open specific group link with clipboard copy
   const handleOpenGroupWhatsApp = () => {
     if (!activeBatch?.whatsapp_group_url) {
       toast.error('No WhatsApp Group link saved for this batch. Please add it in Batches settings.')
       return
     }
 
-    // Copy message to clipboard for easy paste inside group
     navigator.clipboard.writeText(message)
-    toast.success('Message text copied to clipboard! Opening WhatsApp Group...')
-
-    // Open WhatsApp Group URL
+    toast.success('Text copied! Just press Ctrl+V (or Paste) in WhatsApp chat box.')
     window.open(activeBatch.whatsapp_group_url, '_blank')
   }
 
@@ -136,7 +139,7 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
   const handleCopyMessage = () => {
     navigator.clipboard.writeText(message)
     setCopied(true)
-    toast.success('Broadcast text copied!')
+    toast.success('Broadcast text copied to clipboard!')
     setTimeout(() => setCopied(false), 2000)
   }
 
@@ -149,7 +152,7 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
               <MessageCircle className="h-5 w-5" />
             </div>
             <div>
-              <DialogTitle className="text-base">WhatsApp Broadcast & Group Studio</DialogTitle>
+              <DialogTitle className="text-base">WhatsApp Group & Broadcast Studio</DialogTitle>
               <p className="text-xs text-muted-foreground">
                 Post announcements to your WhatsApp Group or send individual messages
               </p>
@@ -216,38 +219,48 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
           />
         </div>
 
-        {/* WhatsApp Group Posting Card */}
+        {/* WhatsApp Group Posting Options */}
         <div className="rounded-2xl border p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold text-sm">
               <Users className="h-4 w-4" />
-              Post Directly to {activeBatchName} WhatsApp Group
+              Send to {activeBatchName} WhatsApp Group
             </div>
-            {activeBatch?.whatsapp_group_url ? (
+            {activeBatch?.whatsapp_group_url && (
               <span className="text-[10px] bg-emerald-600/10 text-emerald-700 dark:text-emerald-400 font-medium px-2 py-0.5 rounded-full border border-emerald-500/20">
                 Group Linked
-              </span>
-            ) : (
-              <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-400 font-medium px-2 py-0.5 rounded-full border border-amber-500/20">
-                No Link Set
               </span>
             )}
           </div>
 
-          <p className="text-xs text-muted-foreground">
-            {activeBatch?.whatsapp_group_url
-              ? 'Clicking below copies your formatted broadcast message and opens the WhatsApp Group chat.'
-              : 'Add a WhatsApp Group link in Batches settings to enable 1-click group posting.'}
-          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {/* Method A: Pre-filled WhatsApp Share */}
+            <Button
+              type="button"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-2 shadow-xs"
+              onClick={handleShareWhatsAppWithText}
+            >
+              <Share2 className="h-4 w-4" />
+              Share to Group (Pre-filled Text)
+            </Button>
 
-          <Button
-            type="button"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-2 shadow-xs"
-            onClick={handleOpenGroupWhatsApp}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Open WhatsApp Group & Post Message
-          </Button>
+            {/* Method B: Open Direct Link */}
+            {activeBatch?.whatsapp_group_url && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 gap-2"
+                onClick={handleOpenGroupWhatsApp}
+              >
+                <ExternalLink className="h-4 w-4" />
+                Open Group Link (Auto Copy)
+              </Button>
+            )}
+          </div>
+
+          <p className="text-[11px] text-muted-foreground text-center">
+            <strong>Tip:</strong> Click <strong>Share to Group</strong> to open WhatsApp with text pre-filled, or click <strong>Copy Text</strong> and paste directly into your WhatsApp group.
+          </p>
         </div>
 
         {/* Individual Student Messages */}
