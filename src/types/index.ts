@@ -45,6 +45,7 @@ export interface Batch {
   days: string[]
   max_students: number
   status: BatchStatus
+  whatsapp_group_url?: string | null
   created_at: string
   updated_at: string
   // Joined
