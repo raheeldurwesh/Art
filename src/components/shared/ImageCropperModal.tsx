@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Crop, RotateCw, ZoomIn, Check, X } from 'lucide-react'
+import { Crop, RotateCw, ZoomIn, Check, X, MoveUp, MoveDown, MoveLeft, MoveRight } from 'lucide-react'
 
 interface ImageCropperModalProps {
   imageSrc: string | null
@@ -78,7 +78,7 @@ export function ImageCropperModal({
     const drawHeight = img.height
 
     // Scale image to fit container initially
-    const scaleToFit = Math.max(cropWidth / drawWidth, cropHeight / drawHeight)
+    const scaleToFit = Math.max(cropWidth / drawWidth, cropHeight / drawHeight) || 1
     const renderW = drawWidth * scaleToFit
     const renderH = drawHeight * scaleToFit
 
@@ -90,22 +90,40 @@ export function ImageCropperModal({
     drawPreview()
   }, [drawPreview])
 
-  // Mouse / Pointer drag handlers
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Unified Pointer Drag Handler (Seamless mouse, touch, and stylus support)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {
+      // fallback if capture fails
+    }
     setIsDragging(true)
     setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y })
   }
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!isDragging) return
+    e.preventDefault()
     setPan({
       x: e.clientX - dragStart.x,
       y: e.clientY - dragStart.y,
     })
   }
 
-  const handleMouseUp = () => {
-    setIsDragging(false)
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId)
+      } catch {
+        // ignore pointer release error
+      }
+      setIsDragging(false)
+    }
+  }
+
+  const nudge = (dx: number, dy: number) => {
+    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }))
   }
 
   const handleRotate = () => {
@@ -140,22 +158,22 @@ export function ImageCropperModal({
         {/* Cropper Container */}
         <div className="flex flex-col items-center justify-center space-y-4">
           <div
-            className="relative overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-zinc-900 cursor-grab active:cursor-grabbing flex items-center justify-center select-none shadow-inner"
-            style={{ width: cropBoxWidth, height: cropBoxHeight }}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
+            className="relative overflow-hidden rounded-xl border-2 border-dashed border-primary/40 bg-zinc-900 cursor-grab active:cursor-grabbing flex items-center justify-center select-none shadow-inner touch-none"
+            style={{ width: cropBoxWidth, height: cropBoxHeight, touchAction: 'none' }}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
           >
             <canvas ref={canvasRef} className="pointer-events-none rounded-lg" />
             <div className="absolute inset-0 border-2 border-primary/80 pointer-events-none rounded-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.5)]" />
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            Drag image to reposition • Use slider to zoom
+          <p className="text-[11px] text-muted-foreground text-center">
+            Touch & drag image to move • Use buttons or slider below
           </p>
 
-          {/* Controls */}
+          {/* Touch Nudge & Zoom Controls */}
           <div className="w-full space-y-3 px-2">
             <div className="flex items-center gap-3">
               <ZoomIn className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -166,9 +184,26 @@ export function ImageCropperModal({
                 step="0.05"
                 value={zoom}
                 onChange={(e) => setZoom(parseFloat(e.target.value))}
-                className="w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
+                className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
               />
               <span className="text-xs font-mono w-8 text-right">{Math.round(zoom * 100)}%</span>
+            </div>
+
+            {/* Directional Nudge Buttons for Touch Ease */}
+            <div className="flex items-center justify-center gap-1.5 pt-1">
+              <span className="text-[11px] text-muted-foreground mr-1">Move:</span>
+              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => nudge(-15, 0)} title="Move Left">
+                <MoveLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => nudge(0, -15)} title="Move Up">
+                <MoveUp className="h-3.5 w-3.5" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => nudge(0, 15)} title="Move Down">
+                <MoveDown className="h-3.5 w-3.5" />
+              </Button>
+              <Button type="button" variant="outline" size="icon" className="h-7 w-7" onClick={() => nudge(15, 0)} title="Move Right">
+                <MoveRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
 
             <div className="flex items-center justify-between pt-1">
@@ -194,7 +229,7 @@ export function ImageCropperModal({
                   setPan({ x: 0, y: 0 })
                 }}
               >
-                Reset
+                Reset Position
               </Button>
             </div>
           </div>
