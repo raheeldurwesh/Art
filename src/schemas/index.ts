@@ -46,6 +46,7 @@ export const batchSchema = z.object({
   days: z.array(z.string()).min(1, 'Select at least one day'),
   max_students: z.coerce.number().min(1, 'Must allow at least 1 student'),
   status: z.enum(['active', 'inactive', 'completed']).default('active'),
+  whatsapp_group_url: z.string().optional().or(z.literal('')),
 })
 
 export type BatchFormData = z.infer<typeof batchSchema>
