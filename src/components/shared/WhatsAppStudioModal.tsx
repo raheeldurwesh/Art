@@ -145,32 +145,34 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-2xl p-5 space-y-4 max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-              <MessageCircle className="h-5 w-5" />
+      <DialogContent className="w-[calc(100vw-1.5rem)] sm:max-w-2xl p-4 sm:p-6 space-y-4 max-h-[88vh] overflow-y-auto rounded-2xl">
+        <DialogHeader className="space-y-1">
+          <div className="flex items-start sm:items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+              <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div>
-              <DialogTitle className="text-base">WhatsApp Group & Broadcast Studio</DialogTitle>
-              <p className="text-xs text-muted-foreground">
+              <DialogTitle className="text-base sm:text-lg font-bold leading-tight">
+                WhatsApp Group & Broadcast Studio
+              </DialogTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Post announcements to your WhatsApp Group or send individual messages
               </p>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2">
           {/* Target Batch */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Select Target Batch</Label>
             <Select value={selectedBatchId} onValueChange={setSelectedBatchId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-xs sm:text-sm">
                 <SelectValue placeholder="Select Batch" />
               </SelectTrigger>
               <SelectContent>
                 {batches.map((b) => (
-                  <SelectItem key={b.id} value={b.id}>
+                  <SelectItem key={b.id} value={b.id} className="text-xs sm:text-sm">
                     {b.name} ({(b.course as unknown as { name: string })?.name || ''})
                   </SelectItem>
                 ))}
@@ -179,15 +181,15 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
           </div>
 
           {/* Template Preset */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Message Template</Label>
             <Select value={templateId} onValueChange={setTemplateId}>
-              <SelectTrigger>
+              <SelectTrigger className="h-9 text-xs sm:text-sm">
                 <SelectValue placeholder="Select Template" />
               </SelectTrigger>
               <SelectContent>
                 {TEMPLATES.map((t) => (
-                  <SelectItem key={t.id} value={t.id}>
+                  <SelectItem key={t.id} value={t.id} className="text-xs sm:text-sm">
                     {t.title}
                   </SelectItem>
                 ))}
@@ -197,14 +199,14 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
         </div>
 
         {/* Message Editor */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <Label className="text-xs font-semibold">Broadcast Text</Label>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-6 text-xs gap-1 text-muted-foreground hover:text-foreground"
+              className="h-6 text-xs gap-1 text-muted-foreground hover:text-foreground px-2"
               onClick={handleCopyMessage}
             >
               {copied ? <Check className="h-3 w-3 text-emerald-600" /> : <Copy className="h-3 w-3" />}
@@ -215,15 +217,15 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             rows={5}
-            className="font-sans text-sm bg-muted/20"
+            className="font-sans text-xs sm:text-sm bg-muted/20 resize-y"
           />
         </div>
 
         {/* WhatsApp Group Posting Options */}
-        <div className="rounded-2xl border p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold text-sm">
-              <Users className="h-4 w-4" />
+        <div className="rounded-2xl border p-3.5 sm:p-4 bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-1.5">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-300 font-semibold text-xs sm:text-sm">
+              <Users className="h-4 w-4 shrink-0" />
               Send to {activeBatchName} WhatsApp Group
             </div>
             {activeBatch?.whatsapp_group_url && (
@@ -237,10 +239,10 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
             {/* Method A: Pre-filled WhatsApp Share */}
             <Button
               type="button"
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-2 shadow-xs"
+              className="w-full h-9 sm:h-10 text-xs sm:text-sm bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-1.5 shadow-xs"
               onClick={handleShareWhatsAppWithText}
             >
-              <Share2 className="h-4 w-4" />
+              <Share2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               Share to Group (Pre-filled Text)
             </Button>
 
@@ -249,16 +251,16 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 gap-2"
+                className="w-full h-9 sm:h-10 text-xs sm:text-sm border-emerald-300 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100/50 gap-1.5"
                 onClick={handleOpenGroupWhatsApp}
               >
-                <ExternalLink className="h-4 w-4" />
+                <ExternalLink className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Open Group Link (Auto Copy)
               </Button>
             )}
           </div>
 
-          <p className="text-[11px] text-muted-foreground text-center">
+          <p className="text-[10px] sm:text-[11px] text-muted-foreground text-center leading-tight">
             <strong>Tip:</strong> Click <strong>Share to Group</strong> to open WhatsApp with text pre-filled, or click <strong>Copy Text</strong> and paste directly into your WhatsApp group.
           </p>
         </div>
@@ -280,17 +282,17 @@ export function WhatsAppStudioModal({ isOpen, onClose, initialBatchId }: WhatsAp
               {students.map((student) => (
                 <div
                   key={student.id}
-                  className="flex items-center justify-between rounded-xl border p-2.5 bg-background hover:bg-muted/40 transition-colors text-xs"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 rounded-xl border p-2.5 bg-background hover:bg-muted/40 transition-colors text-xs"
                 >
-                  <div>
-                    <span className="font-medium text-foreground">{student.full_name}</span>
-                    <span className="text-muted-foreground ml-2">({student.student_mobile})</span>
+                  <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                    <span className="font-medium text-foreground truncate">{student.full_name}</span>
+                    <span className="text-muted-foreground text-[11px]">({student.student_mobile})</span>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="h-7 text-xs gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950"
+                    className="h-7 text-xs gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50 dark:border-emerald-800 dark:hover:bg-emerald-950 self-end sm:self-auto shrink-0"
                     onClick={() => handleSendToStudent(student.student_mobile)}
                   >
                     <Send className="h-3 w-3" />
