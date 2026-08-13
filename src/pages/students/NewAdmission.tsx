@@ -293,25 +293,33 @@ export default function NewAdmissionPage() {
 
         if (studentError) throw studentError
 
-        const initialPayment = data.initial_payment || 0
-        const { error: feeError } = await supabase.from('fees').insert({
-          student_id: student.id,
-          total_fee: data.total_fee,
-          paid: initialPayment,
-          remaining: data.total_fee - initialPayment,
-        })
+        const initialPayment = Number(data.initial_payment || 0)
+        const { data: newFee, error: feeError } = await supabase
+          .from('fees')
+          .insert({
+            student_id: student.id,
+            total_fee: data.total_fee,
+            paid: initialPayment,
+            remaining: Math.max(0, data.total_fee - initialPayment),
+          })
+          .select()
+          .single()
 
         if (feeError) throw feeError
 
-        if (initialPayment > 0) {
-          await supabase.from('fee_payments').insert({
-            fee_id: student.id,
+        if (initialPayment > 0 && newFee) {
+          const { error: paymentError } = await supabase.from('fee_payments').insert({
+            fee_id: newFee.id,
             student_id: student.id,
             amount: initialPayment,
             payment_date: data.admission_date,
             payment_method: data.payment_method || 'cash',
-            notes: 'Initial payment at admission',
+            notes: 'Initial admission fee payment',
           })
+
+          if (paymentError) {
+            console.error('Failed to record initial payment in history:', paymentError)
+          }
         }
 
         toast.success(`Student admitted successfully! Admission No: ${student.admission_no}`)
