@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/shared/PageHeader'
 import { DataTable, type Column } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog'
+import { WhatsAppStudioModal } from '@/components/shared/WhatsAppStudioModal'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Plus, Edit, Trash2, Users } from 'lucide-react'
+import { Plus, Edit, Trash2, Users, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import type { Batch, Course } from '@/types'
 
@@ -39,6 +40,8 @@ export default function BatchesPage() {
   const [loading, setLoading] = useState(true)
   const [formOpen, setFormOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  const [whatsappModalOpen, setWhatsappModalOpen] = useState(false)
+  const [broadcastBatchId, setBroadcastBatchId] = useState<string | undefined>()
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null)
   const [deletingBatch, setDeletingBatch] = useState<Batch | null>(null)
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -70,7 +73,7 @@ export default function BatchesPage() {
   function openAddForm() {
     setEditingBatch(null)
     setSelectedDays([])
-    reset({ name: '', course_id: '', start_time: '09:00', end_time: '11:00', days: [], max_students: 30, status: 'active' })
+    reset({ name: '', course_id: '', start_time: '09:00', end_time: '11:00', days: [], max_students: 30, status: 'active', whatsapp_group_url: '' })
     setFormOpen(true)
   }
 
@@ -85,6 +88,7 @@ export default function BatchesPage() {
       days: batch.days,
       max_students: batch.max_students,
       status: batch.status,
+      whatsapp_group_url: batch.whatsapp_group_url || '',
     })
     setFormOpen(true)
   }
@@ -157,6 +161,26 @@ export default function BatchesPage() {
       ),
     },
     {
+      key: 'whatsapp_group_url',
+      header: 'WhatsApp Group',
+      cell: (row) => (
+        row.whatsapp_group_url ? (
+          <a
+            href={row.whatsapp_group_url}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+            Group Linked
+          </a>
+        ) : (
+          <span className="text-xs text-muted-foreground">Not Linked</span>
+        )
+      ),
+    },
+    {
       key: 'max_students',
       header: 'Capacity',
       cell: (row) => (
@@ -174,9 +198,22 @@ export default function BatchesPage() {
     {
       key: 'actions',
       header: '',
-      className: 'w-20',
+      className: 'w-28 text-right',
       cell: (row) => (
-        <div className="flex gap-1">
+        <div className="flex justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
+            title="Broadcast Message"
+            onClick={(e) => {
+              e.stopPropagation()
+              setBroadcastBatchId(row.id)
+              setWhatsappModalOpen(true)
+            }}
+          >
+            <MessageCircle className="h-3.5 w-3.5" />
+          </Button>
           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); openEditForm(row) }}>
             <Edit className="h-3.5 w-3.5" />
           </Button>
@@ -193,7 +230,18 @@ export default function BatchesPage() {
       <PageHeader
         title="Batches"
         description="Manage course batches and schedules"
-        actions={[{ label: 'Add Batch', icon: Plus, onClick: openAddForm }]}
+        actions={[
+          {
+            label: 'WhatsApp Broadcast',
+            icon: MessageCircle,
+            variant: 'outline',
+            onClick: () => {
+              setBroadcastBatchId(undefined)
+              setWhatsappModalOpen(true)
+            },
+          },
+          { label: 'Add Batch', icon: Plus, onClick: openAddForm },
+        ]}
       />
 
       <DataTable
@@ -264,6 +312,18 @@ export default function BatchesPage() {
               </div>
               {errors.days && <p className="text-xs text-destructive">{errors.days.message}</p>}
             </div>
+
+            <div className="space-y-2">
+              <Label>WhatsApp Group Link (Optional)</Label>
+              <Input
+                placeholder="e.g., https://chat.whatsapp.com/ABC123xyz..."
+                {...register('whatsapp_group_url')}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Paste your batch's WhatsApp Group invite link to send 1-click broadcasts.
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label>Max Students</Label>
               <Input type="number" min={1} {...register('max_students')} />
@@ -286,6 +346,13 @@ export default function BatchesPage() {
         confirmLabel="Delete"
         variant="destructive"
         onConfirm={handleDelete}
+      />
+
+      {/* WhatsApp Broadcast & Group Studio Modal */}
+      <WhatsAppStudioModal
+        isOpen={whatsappModalOpen}
+        onClose={() => setWhatsappModalOpen(false)}
+        initialBatchId={broadcastBatchId}
       />
     </div>
   )
